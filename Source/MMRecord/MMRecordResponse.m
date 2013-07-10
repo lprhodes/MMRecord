@@ -263,9 +263,36 @@
             }
             
             for (id object in relationshipObject) {
-                MMRecordProtoRecord *relationshipProto = [self protoRecordWithRecordResponseObject:object
-                                                                                            entity:entity
-                                                                            existingResponseGroups:responseGroups];
+                
+                MMRecordResponseGroup *recordResponseGroup = [self responseGroupForEntity:entity
+                                                               fromExistingResponseGroups:responseGroups];
+                MMRecordRepresentation *representation = recordResponseGroup.representation;
+                
+                
+                id relationshipPrimaryKey = [representation primaryKeyPropertyName];
+                
+                NSPropertyDescription *propertyDescription = entity.propertiesByName[relationshipPrimaryKey];
+                NSArray *additionalKeyPathsForMappingPropertyDescription = [representation additionalKeyPathsForMappingPropertyDescription:propertyDescription];
+                
+                MMRecordProtoRecord *relationshipProto;
+                
+                if ([object isKindOfClass:[NSDictionary class]] && [additionalKeyPathsForMappingPropertyDescription count]) {
+                    id primaryKey = [[responseGroup representation] primaryKeyPropertyName];
+                    id additionalKeyPath = additionalKeyPathsForMappingPropertyDescription[0];
+                    
+                    NSMutableDictionary *mutableObject = [object mutableCopy];
+                    mutableObject[additionalKeyPath] = object[primaryKey];
+                    [mutableObject removeObjectForKey:primaryKey];
+                    
+                    relationshipProto = [self protoRecordWithRecordResponseObject:mutableObject
+                                                                                                entity:entity
+                                                                                existingResponseGroups:responseGroups];
+                    
+                } else {
+                    relationshipProto = [self protoRecordWithRecordResponseObject:object
+                                                                                                entity:entity
+                                                                                existingResponseGroups:responseGroups];
+                }       
                 
                 [protoRecord addRelationshipProto:relationshipProto forRelationshipDescription:relationshipDescription];
             }
